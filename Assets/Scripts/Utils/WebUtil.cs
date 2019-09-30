@@ -80,10 +80,6 @@ namespace OMDB.Utils
             var www = new WWW(url);
             // wait until the download is done
             yield return www;
-            // Create a texture in DXT1 format
-            Texture2D texture = new Texture2D(www.texture.width, www.texture.height, TextureFormat.DXT1, false);
-            // assign the downloaded image to sprite
-            www.LoadImageIntoTexture(texture);
 
             while (!www.isDone && !cancellationToken.IsCancellationRequested)
             {
@@ -98,6 +94,11 @@ namespace OMDB.Utils
             }
             else
             {
+                // Create a texture in DXT1 format
+                Texture2D texture = new Texture2D(www.texture.width, www.texture.height, TextureFormat.DXT1, false);
+                // assign the downloaded image to sprite
+                www.LoadImageIntoTexture(texture);
+                
                 observer.OnNext(texture);
                 observer.OnCompleted(); // IObserver needs OnCompleted after OnNext!
             }
