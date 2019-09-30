@@ -8,11 +8,11 @@ namespace OMDB.Generic
     {
         [Inject] protected readonly SignalBus SignalBus;
 
-        protected readonly CompositeDisposable _disposables;
+        protected readonly CompositeDisposable Disposables;
 
         protected Mediator()
         {
-            _disposables = new CompositeDisposable();
+            Disposables = new CompositeDisposable();
         }
 
         public virtual void Initialize()
@@ -22,7 +22,7 @@ namespace OMDB.Generic
 
         public virtual void Dispose()
         {
-            _disposables.Dispose();
+            Disposables.Dispose();
         }
     }
 }
