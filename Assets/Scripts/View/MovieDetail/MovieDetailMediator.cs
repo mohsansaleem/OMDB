@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Timers;
 using OMDB.Generic;
 using OMDB.Model;
 using UniRx;
@@ -21,6 +22,9 @@ namespace OMDB.View
         {
             SignalBus.Subscribe<GridInitSignal>(InitData);
 
+            // Adding current selection to the History Stack to Hide it.
+            _remoteDataModel.MoviesInDetailStack.Add(_remoteDataModel.SelectedMovie.Value);
+            
             // Query Observers.
             _remoteDataModel.QueryResult.ObserveAdd().Subscribe(e => OnMovieAdd(e.Value)).AddTo(Disposables);
             _remoteDataModel.QueryResult.ObserveRemove().Subscribe(e => OnMovieRemove(e.Value)).AddTo(Disposables);
@@ -53,10 +57,7 @@ namespace OMDB.View
                 _remoteDataModel.SelectedMovie.Value = signal.Model;
                 _remoteDataModel.MoviesInDetailStack.Add(signal.Model);
             });
-
-            // Adding current selection to the History Stack to Hide it.
-            _remoteDataModel.MoviesInDetailStack.Add(_remoteDataModel.SelectedMovie.Value);
-
+            
             _remoteDataModel.SelectedMovie.Subscribe(model =>
             {
                 _view.Image.sprite = model.Poster.Value;
@@ -133,7 +134,7 @@ namespace OMDB.View
                 _reactiveDisposible.Remove(model);
             }
 
-            SignalBus.Fire(new RemoveMovieFromGridSignal(model));
+            SignalBus.TryFire(new RemoveMovieFromGridSignal(model));
         }
 
         private void OnMovieAddToStack(CollectionAddEvent<MovieDataModel> addEvent)
