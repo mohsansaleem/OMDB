@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ProjectSettings:
     GridItemMoveSpeed: 0.05
-    GridItemSpawnSpeed: 0.5
-    GridItemDespawnSpeed: 0.6
+    GridItemSpawnSpeed: 0.05
+    GridItemDespawnSpeed: 0.04
