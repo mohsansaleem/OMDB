@@ -1,10 +1,12 @@
-﻿using UniRx;
+﻿using System;
+using System.Collections.Generic;
+using UniRx;
 using UnityEngine;
 using Zenject;
 
 namespace OMDB.Model
 {
-    public class MovieDataModel
+    public class MovieDataModel : IComparable<MovieDataModel>
     {
         public MovieData MovieData;
 
@@ -20,6 +22,11 @@ namespace OMDB.Model
         
         public class Factory : PlaceholderFactory<MovieData, MovieDataModel>
         {
+        }
+        
+        public int CompareTo(MovieDataModel y)
+        {
+            return (y == null) ? 0 : string.Compare(Title, y.Title);
         }
     }
 }

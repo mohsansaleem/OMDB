@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using DG.Tweening;
 using OMDB.Model;
 using OMDB.View;
@@ -47,7 +48,7 @@ public class GridItem : MonoBehaviour
             if (Math.Abs(pos.x - ThisRectTransform.anchoredPosition.x) < 1 && 
                 Math.Abs(pos.y - ThisRectTransform.anchoredPosition.y) < 1)
             {
-                Promise.Resolved();
+                p.Resolve();
             }
             else
             {
@@ -71,12 +72,20 @@ public class GridItem : MonoBehaviour
                 
                     dummy.MoveToPositionTween(dummyTarget)
                         .Done((() => _gridItemPool.Despawn(dummy)));
-                    
-                    
                 }
-            
+
+                ThisRectTransform.DOComplete(true);
                 var tween = ThisRectTransform.DOAnchorPos(pos, 0.5f, true);
+
                 tween.onComplete = p.Resolve;
+                tween.onKill = () =>
+                {
+                    if (Promise.GetPendingPromises().Contains(p))
+                    {
+                        p.Resolve();
+                    }
+                };
+                
                 tween.Play();
             }
         }
@@ -115,7 +124,9 @@ public class GridItem : MonoBehaviour
             // Lame. Refactor.
             gridItem.Button.onClick.RemoveAllListeners();
             gridItem.Button.onClick.AddListener((() => gridItem._signalBus.Fire(new MovieSelectSignal(model))));
-            
+
+
+            gridItem.gameObject.name = model.Title;
             //base.OnSpawned(gridItem);
         }
     }

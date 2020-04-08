@@ -35,7 +35,7 @@ namespace OMDB.View
             
             SignalBus.Subscribe<MovieSelectSignal>(signal =>
             {
-                _remoteDataModel.SelectedMovie.Value = signal.MovieDataModel;
+                _remoteDataModel.SelectedMovie.Value = signal.Model;
                 
                 // Lame. Refactor through command and Async Load.
                 _zenjectSceneLoader.LoadScene(1, LoadSceneMode.Additive);
