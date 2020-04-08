@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using OMDB.Generic;
 using OMDB.Model;
 using RSG;
@@ -141,6 +142,7 @@ namespace OMDB.View
         {
             Promise p = new Promise();
             IPromise tmpP = null;
+            List<IPromise> promises = new List<IPromise>();
             
             if (_gridItems.ContainsKey(obj.Model))
             {
@@ -154,32 +156,27 @@ namespace OMDB.View
                     
                     // Move other to place.
                     var myValueList = _sortedList;
-                    for (i = 0; i < myValueList.Count; i++)
-                    {
-                        var gridItem = _gridItems[myValueList[i]];
-                        Vector2 pos = GetPositionInGrid(i);
-
-                        if (tmpP == null)
-                        {
-                            tmpP = gridItem.MoveToPositionTween(pos);
-                        }
-                        else
-                        {
-                            tmpP = tmpP.Then(() =>
-                            {
-                                return gridItem.MoveToPositionTween(pos);
-                            });
-                        }
-                    }
                     
-                    p.Resolve();
+                    var ps = myValueList.Select(model => (Func<IPromise>)(() =>
+                    {
+                        var gridItem = _gridItems[model];
+                        Vector2 pos = GetPositionInGrid(_sortedList.IndexOf(model));
+                        
+                        return gridItem.MoveToPositionTween(pos);
+                    }));
+                    
+                    Promise.Sequence(ps).Done(p.Resolve);
                 });
+                
+                return p;
             }
             else
             {
                 p.Reject(new Exception($"RemoveMovieFromGrid: GridItems doesn't have item: {obj.Model.Title}"));
             }
 
+            p.Resolve();
+            
             return p;
         }
 
@@ -206,7 +203,7 @@ namespace OMDB.View
                     {
                         var myValueList = _sortedList;
 
-                        for (int j = 0; j < myValueList.Count; j++)
+                        for (int j = ++i; j < myValueList.Count; j++)
                         {
                             promises.Add(
                                 _gridItems[myValueList[j]].MoveToPositionTween(GetPositionInGrid(j)) as Promise);
@@ -227,9 +224,9 @@ namespace OMDB.View
                 Debug.LogError(e);
             }
 
-            Promise.All(promises);
-
-            return p;
+            promises.Add(p);
+            
+            return Promise.All(promises);
         }
     }
 }

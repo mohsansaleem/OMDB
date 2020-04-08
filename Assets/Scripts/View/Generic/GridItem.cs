@@ -74,18 +74,9 @@ public class GridItem : MonoBehaviour
                         .Done((() => _gridItemPool.Despawn(dummy)));
                 }
 
-                ThisRectTransform.DOComplete(true);
                 var tween = ThisRectTransform.DOAnchorPos(pos, 0.5f, true);
 
                 tween.onComplete = p.Resolve;
-                tween.onKill = () =>
-                {
-                    if (Promise.GetPendingPromises().Contains(p))
-                    {
-                        p.Resolve();
-                    }
-                };
-                
                 tween.Play();
             }
         }
