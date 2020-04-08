@@ -12,6 +12,7 @@ public class GridItem : MonoBehaviour
 {
     [Inject] private GridItem.Pool _gridItemPool;
     [Inject] private SignalBus _signalBus;
+    [Inject] private readonly ProjectContextSettingsInstaller.Settings _projectSettings;
     
     public RectTransform ThisRectTransform;
     public Image MoviePosterSprite;
@@ -21,8 +22,10 @@ public class GridItem : MonoBehaviour
 
     public IPromise DespawnTween()
     {
+        Button.interactable = false;
         Promise p = new Promise();
-        var tween = ThisRectTransform.DOSizeDelta(Vector2.zero, 0.5f, true);
+        
+        var tween = ThisRectTransform.DOSizeDelta(Vector2.zero, _projectSettings.GridItemSpawnSpeed, true);
         tween.onComplete = p.Resolve;
         tween.Play();
 
@@ -33,8 +36,12 @@ public class GridItem : MonoBehaviour
     {
         Promise p = new Promise();
         ThisRectTransform.sizeDelta = Vector2.zero;
-        var tween = ThisRectTransform.DOSizeDelta(new Vector2(100,100), 0.8f, true);
-        tween.onComplete = p.Resolve;
+        var tween = ThisRectTransform.DOSizeDelta(new Vector2(100,100), _projectSettings.GridItemDespawnSpeed, true);
+        tween.onComplete = () =>
+        {
+            Button.interactable = true;
+            p.Resolve();
+        };
         tween.Play();
 
         return p;
@@ -74,7 +81,7 @@ public class GridItem : MonoBehaviour
                         .Done((() => _gridItemPool.Despawn(dummy)));
                 }
 
-                var tween = ThisRectTransform.DOAnchorPos(pos, 0.5f, true);
+                var tween = ThisRectTransform.DOAnchorPos(pos, _projectSettings.GridItemMoveSpeed, true);
 
                 tween.onComplete = p.Resolve;
                 tween.Play();
