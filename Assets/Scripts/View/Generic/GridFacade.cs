@@ -16,7 +16,7 @@ namespace OMDB.View
         // Locals
         private int x = 50, y = -50;
         private Dictionary<MovieDataModel, GridItem> _gridItems = new Dictionary<MovieDataModel, GridItem>();
-        private SortedList<string, MovieDataModel> _sortedList = new SortedList<string, MovieDataModel>();
+        private List<MovieDataModel> _sortedList = new List<MovieDataModel>();
         
         private List<IGridSignal> _gridSignalsQueue = new List<IGridSignal>();
         
@@ -26,7 +26,6 @@ namespace OMDB.View
             SignalBus.Subscribe<RemoveMovieFromGridSignal>(EnqueueSignal);
             SignalBus.Subscribe<ClearGridSignal>(ClearGrid);
             SignalBus.Subscribe<LoadMoviesSignal>((signal)=> LoadGrid(signal.Movies));
-            
             
             SignalBus.TryFire<GridInitSignal>();
         }
@@ -39,18 +38,21 @@ namespace OMDB.View
         private void LoadGrid(List<MovieDataModel> movies)
         {
             IPromise p = null;
+            List<IPromise> promises = new List<IPromise>();
             
             foreach (MovieDataModel model in movies)
             {
-                if (p == null)
-                {
-                    p = AddMovieToGrid(model);
-                }
-                else
-                {
-                    p = p.Then(() => AddMovieToGrid(model));
-                }
+                promises.Add(AddMovieToGrid(model, false));
             }
+
+            Promise.All(promises).Done(() =>
+            {
+                int i = 0;
+                foreach (var model in _sortedList)
+                {
+                    //Debug.Log($"Index: {i++}, {model.Title}");
+                }
+            });
         }
         
         private void ClearGrid()
@@ -74,10 +76,10 @@ namespace OMDB.View
             lock (_gridSignalsQueue)
             {
                 _gridSignalsQueue.Add(signal);
-
+                
                 if (_gridSignalsQueue.Count == 1)
                 {
-                    ExecuteSignal(signal);
+                    ExecuteSignalAsync(signal);
                 }
             }
         }
@@ -90,35 +92,42 @@ namespace OMDB.View
                 {
                     var signal = _gridSignalsQueue[0];
                     
-                    ExecuteSignal(signal);
+                    ExecuteSignalAsync(signal);
                 }
             }
         }
 
-        private void ExecuteSignal(IGridSignal signal)
+        private void ExecuteSignalAsync(IGridSignal signal)
         {
             IPromise p = null;
-            
-            if (signal is AddMovieToGridSignal)
+
+            if (signal is AddMovieToGridSignal addMovieToGridSignal)
             {
-                p = AddMovieToGrid((signal as AddMovieToGridSignal).Model);
+                p = AddMovieToGrid(addMovieToGridSignal.Model);
             }
-            else if (signal is RemoveMovieFromGridSignal)
+            else if (signal is RemoveMovieFromGridSignal removeMovieFromGridSignal)
             {
-                p = RemoveMovieFromGrid(signal as RemoveMovieFromGridSignal);
+                p = RemoveMovieFromGrid(removeMovieFromGridSignal);
             }
             else
             {
                 Debug.LogException(new NotImplementedException("Add Clear Queue case."));
             }
-                    
+
+            var tmpSignal = signal;
             p.Done(()=>
             {
                 lock (_gridSignalsQueue)
                 {
-                    _gridSignalsQueue.RemoveAt(0);
+                    _gridSignalsQueue.Remove(tmpSignal);
                 }
-
+                CheckAndExecuteQueue();
+            },exception =>
+            {
+                lock (_gridSignalsQueue)
+                {
+                    _gridSignalsQueue.Remove(tmpSignal);
+                }
                 CheckAndExecuteQueue();
             });
         }
@@ -131,89 +140,95 @@ namespace OMDB.View
         private IPromise RemoveMovieFromGrid(RemoveMovieFromGridSignal obj)
         {
             Promise p = new Promise();
-            IPromise tmpP = p;
+            IPromise tmpP = null;
             
             if (_gridItems.ContainsKey(obj.Model))
             {
                 _gridItems[obj.Model].DespawnTween().Done(() =>
                 {
-                    // Move other to place.
-                    int i = _sortedList.IndexOfKey(obj.Model.Title);
+                    int i = _sortedList.IndexOf(obj.Model);
 
                     _gridItemPool.Despawn(_gridItems[obj.Model]);
                     _gridItems.Remove(obj.Model);
-                    _sortedList.Remove(obj.Model.Title);
+                    _sortedList.Remove(obj.Model);
                     
-                    var myValueList = _sortedList.Values;
-                    for (; i < myValueList.Count; i++)
+                    // Move other to place.
+                    var myValueList = _sortedList;
+                    for (i = 0; i < myValueList.Count; i++)
                     {
                         var gridItem = _gridItems[myValueList[i]];
                         Vector2 pos = GetPositionInGrid(i);
-                        
-                        tmpP = tmpP.Then(() =>
-                        {
-                            try
-                            {
-                                gridItem.ToString();
-                            }
-                            catch (Exception e)
-                            {
-                                Debug.LogError(e);
-                            }
-                            return gridItem.MoveToPositionTween(pos);
-                        });
-                    }
 
+                        if (tmpP == null)
+                        {
+                            tmpP = gridItem.MoveToPositionTween(pos);
+                        }
+                        else
+                        {
+                            tmpP = tmpP.Then(() =>
+                            {
+                                return gridItem.MoveToPositionTween(pos);
+                            });
+                        }
+                    }
+                    
                     p.Resolve();
                 });
             }
             else
             {
-                Debug.LogError("SomeThing went Wrong.");
+                p.Reject(new Exception($"RemoveMovieFromGrid: GridItems doesn't have item: {obj.Model.Title}"));
             }
-            
-            return tmpP;
+
+            return p;
         }
 
-        private IPromise AddMovieToGrid(MovieDataModel model)
+        private IPromise AddMovieToGrid(MovieDataModel model, bool animate = true)
         {
             Promise p = new Promise();
-            IPromise tmpP = null;
+            List<Promise> promises = new List<Promise>();
 
             try
             {
-                _sortedList[model.Title] = model;
-
-                int i = _sortedList.IndexOfKey(model.Title);
-                
-                GridItem gridItem = _gridItemPool.Spawn(model,
-                    GetPositionInGrid(i), true);
-
-                _gridItems[model] = gridItem;
-                
-                
-                var myValueList = _sortedList.Values;
-                for (++i; i < myValueList.Count; i++)
+                if (!_sortedList.Contains(model))
                 {
-                    int j = i;
-                    tmpP = _gridItems[myValueList[j]].MoveToPositionTween(
-                        GetPositionInGrid(j));
+                    _sortedList.Add(model);
+                    _sortedList.Sort();
+                    
+                    int i = _sortedList.IndexOf(model);
+                
+                    GridItem gridItem = _gridItemPool.Spawn(model,
+                        GetPositionInGrid(i), true);
+
+                    _gridItems[model] = gridItem;
+
+                    if (animate)
+                    {
+                        var myValueList = _sortedList;
+
+                        for (int j = 0; j < myValueList.Count; j++)
+                        {
+                            promises.Add(
+                                _gridItems[myValueList[j]].MoveToPositionTween(GetPositionInGrid(j)) as Promise);
+                        }
+                    }
+                    
+                    p.Resolve();
+                }
+                else
+                {
+                    Debug.LogError($"Model already exist for {model.Title}.");
+                    p.Reject(new Exception($"Model already exist for {model.Title}."));
                 }
             }
             catch (Exception e)
             {
+                Debug.LogError("Exception");
                 Debug.LogError(e);
             }
 
-            if (tmpP == null)
-            {
-                p.Resolve();
-            }
-            else
-            {
-                tmpP?.Done(p.Resolve);
-            }
-            
+            Promise.All(promises);
+
             return p;
         }
     }

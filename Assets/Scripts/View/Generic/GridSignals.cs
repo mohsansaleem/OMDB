@@ -6,34 +6,37 @@ namespace OMDB.View
     public interface IGridSignal
     {
     }
+
+    public class MovieSignal
+    {
+        public MovieDataModel Model;
+
+        protected MovieSignal(MovieDataModel model)
+        {
+            Model = model;
+        }
+    }
     
-    public class AddMovieToGridSignal:IGridSignal
+    public class AddMovieToGridSignal : MovieSignal, IGridSignal
     {
-        public MovieDataModel Model;
-
-        public AddMovieToGridSignal(MovieDataModel model)
+        public bool Animate;
+        public AddMovieToGridSignal(MovieDataModel model, bool animate = true):base(model)
         {
-            Model = model;
+            Animate = animate;
         }
     }
 
-    public class RemoveMovieFromGridSignal:IGridSignal
+    public class RemoveMovieFromGridSignal : MovieSignal, IGridSignal
     {
-        public MovieDataModel Model;
-
-        public RemoveMovieFromGridSignal(MovieDataModel model)
+        public RemoveMovieFromGridSignal(MovieDataModel model):base(model)
         {
-            Model = model;
         }
     }
 
-    public class MovieSelectSignal
+    public class MovieSelectSignal : MovieSignal
     {
-        public MovieDataModel MovieDataModel;
-
-        public MovieSelectSignal(MovieDataModel model)
+        public MovieSelectSignal(MovieDataModel model): base(model)
         {
-            MovieDataModel = model;
         }
     }
     
@@ -51,8 +54,8 @@ namespace OMDB.View
     {
         
     }
-    
-    public class ClearGridSignal:IGridSignal
+
+    public class ClearGridSignal : IGridSignal
     {
         
     }
