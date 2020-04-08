@@ -64,6 +64,7 @@ namespace OMDB.Generic
             }
             else
             {
+                Debug.Log("Result found in Cache.");
                 promise.Resolve(_moviesSearchResult[name]);
             }
             
@@ -88,6 +89,7 @@ namespace OMDB.Generic
                                 
                                 if (_dataModelsCache.ContainsKey(movieData.imdbID))
                                 {
+                                    Debug.Log("Movie Data Found in Cache.");
                                     model = _dataModelsCache[movieData.imdbID];
                                 }
                                 else

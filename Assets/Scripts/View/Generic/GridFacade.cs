@@ -102,7 +102,6 @@ namespace OMDB.View
         {
             IPromise p = null;
 
-            Debug.Log($"Execute: {signal.ToString()}");
             if (signal is AddMovieToGridSignal addMovieToGridSignal)
             {
                 p = AddMovieToGrid(addMovieToGridSignal.Model);
@@ -119,7 +118,6 @@ namespace OMDB.View
             var tmpSignal = signal;
             p.Done(()=>
             {
-                Debug.Log("Done");
                 lock (_gridSignalsQueue)
                 {
                     _gridSignalsQueue.Remove(tmpSignal);
