@@ -10,8 +10,7 @@ namespace OMDB.Command
 {
     public class SearchMovieCommand
     {
-        [Inject] private DataHub _dataHub;
-        
+        [Inject] private IDataHub _dataHub;
         [Inject] private RemoteDataModel _remoteDataModel;
         
         public void Execute(SearchMovieSignal signal)

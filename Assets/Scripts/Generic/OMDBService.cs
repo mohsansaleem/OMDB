@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace OMDB.Generic
 {
-    public class OMDBService:IOMDBService
+    public class OMDBService : IOMDBService
     {
         private const string _url = "http://www.omdbapi.com/?apikey=6367da97";
 

@@ -15,8 +15,8 @@ namespace OMDB.Generic
             
             Container.Bind<RemoteDataModel>().AsSingle();
             
-            Container.Bind<OMDBService>().AsSingle();
-            Container.Bind<DataHub>().AsSingle();
+            Container.BindInterfacesAndSelfTo<OMDBService>().AsSingle();
+            Container.BindInterfacesAndSelfTo<DataHub>().AsSingle();
             
             Container.DeclareSignal<SearchMovieSignal>().RunAsync();
             Container.BindSignal<SearchMovieSignal>()

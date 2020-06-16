@@ -9,8 +9,7 @@ namespace OMDB.Generic
 {
     public class DataHub : IDataHub
     {
-        [Inject] private OMDBService _service;
-
+        [Inject] private IOMDBService _service;
         [Inject] private MovieDataModel.Factory _movieDataFactory;
 
         // Cache
